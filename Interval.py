@@ -682,6 +682,8 @@ def value_to_interval(expr):
         etmp = Interval([int(expr), int(expr)])
     elif isinstance(expr, (sympy.Float, dec.Decimal)):
         etmp = Interval([float(expr), float(expr)])
+    elif  isinstance(expr, IntervalMP):
+        etmp = Interval([float(expr[0]), float(expr[1])])
     elif  isinstance(expr, Interval):
         etmp = expr
     else:
