@@ -19,6 +19,9 @@ class Interval:
         self.x = x.copy()
 
     def __repr__(self):
+        """
+        Returns string, which represents the Interval
+        """
         result = "["
         if isinstance(self.x[0], (float, sympy.Float, np.float32, np.float64)):
             result += str(round(float(self.x[0]), 3))
@@ -82,7 +85,7 @@ class Interval:
 
     def is_no_intersec(self, other):
         """
-        Checks that two intervals has no intersection
+        Checks that two intervals have no intersection
 
         Parameters
         ----------
@@ -115,12 +118,18 @@ class Interval:
         self.x.__setitem__(key, value)
 
     def __neg__(self):
+        """
+        Unary operator of minus for Interval (-self)
+        """
         ninterval = Interval(self.x)
         ninterval.x[0] = - self.x[1]
         ninterval.x[1] = - self.x[0]
         return ninterval
 
     def __add__(self, other):
+        """
+        Binary operator of plus for Interval (self + other)
+        """
         ointerval = value_to_interval(other)
         ninterval = Interval(self.x)
         ninterval.x[0] = self.x[0] + ointerval.x[0]
@@ -128,18 +137,34 @@ class Interval:
         return ninterval
 
     def __radd__(self, other):
+        """
+        Binary reverese operator of plus for Interval (other + self)
+        """
         return self.__add__(other)
 
     def __sub__(self, other):
+        """
+        Binary operator of minus for Interval (self - other)
+        """
         ointerval = value_to_interval(other)
         return self.__add__(-ointerval)
 
 
     def __rsub__(self, other):
+        """
+        Binary reverese operator of minus for Interval (other - self)
+        """
         ointerval = value_to_interval(other)
         return ointerval.__add__(-self)
 
     def __pow__(self, factor):
+        """
+        Binary operator of power for Interval (self ** other)
+
+        Parameters
+        ----------
+        other - int or float
+        """
         if ((not isinstance(factor, int)) and (not isinstance(factor, sympy.Integer))) and ((not isinstance(factor, float)) and
          (not isinstance(factor, sympy.Float))):
             raise TypeError("Factor for exponentiation should be int or float")
@@ -167,6 +192,13 @@ class Interval:
         return ninterval
 
     def __rpow__(self, value):
+        """
+        Binary reverse operator of power for Interval (other ** self)
+
+        Parameters
+        ----------
+        other - int or float
+        """
         if ((not isinstance(value, int)) and (not isinstance(value, sympy.Integer))) and ((not isinstance(value, float)) and
          (not isinstance(value, sympy.Float))):
             raise TypeError("Value for exponentiation should be int or float")
@@ -179,28 +211,37 @@ class Interval:
                 return Interval([1, 1])
             elif self.x[0] == 0 and self.x[1] > 0:
                 return [Interval([1, 1]), Interval([0, 0])]
-            else:
-                u = value**self.x[0]
-                v = value**self.x[1]
-                return Interval([min(u, v), max(u, v)])
+        else:
+            u = value**self.x[0]
+            v = value**self.x[1]
+            return Interval([min(u, v), max(u, v)])
 
 
     def __mul__(self, other):
+        """
+        Binary operator of multiplication for Interval (self * other)
+        """
         ointerval = value_to_interval(other)
         v = [self.x[0] * ointerval.x[0], self.x[0] * ointerval.x[1], self.x[1] * ointerval.x[0], self.x[1] * ointerval.x[1]]
         b = [min(v), max(v)]
         return Interval(b)
 
-
-    def __my_true_div(self, a, b):
+    @staticmethod
+    def my_true_div(a, b):
+        """
+        True division of two numbers, which could be infinty. Raises error, when a and b are infinities.
+        """
         if b == float("inf") or b == float("-inf") or b == dec.Decimal('Infinity') or b == dec.Decimal('-Infinity'):
             if a == float("inf") or a == float("-inf") or a == dec.Decimal('Infinity') or a == dec.Decimal('-Infinity'):
                 raise ValueError('Infinity by infinity division')
             else:
                 return 0
         return a / b
-
-    def __my_floor_div(self, a, b):
+    @staticmethod
+    def __my_floor_div(a, b):
+        """
+        Floor division of two numbers, which could be infinty. Raises error, when a and b are infinities.
+        """
         if b == float("inf") or b == float("-inf") or b == dec.Decimal('Infinity') or b == dec.Decimal('-Infinity'):
             if a == float("inf") or a == float("-inf") or a == dec.Decimal('Infinity') or a == dec.Decimal('-Infinity'):
                 raise ValueError('Infinity by infinity division')
@@ -209,6 +250,9 @@ class Interval:
         return a // b
 
     def __truediv__(self, other):
+        """
+        Binary operator of true division for Interval (self / other)
+        """
         ointerval = value_to_interval(other)
         if ointerval.x[0] == ointerval.x[1] == 0:
             if self.x[0] <= 0 <= self.x[1]:
@@ -221,25 +265,28 @@ class Interval:
             return Interval([float('-inf'), float('inf')])
         elif ointerval.x[0] == 0:
             if self.x[1] < 0:
-                return Interval([float('-inf'), self.__my_true_div(self.x[1], ointerval.x[1])])
+                return Interval([float('-inf'), Interval.my_true_div(self.x[1], ointerval.x[1])])
             else:
-                return Interval([self.__my_true_div(self.x[0], ointerval.x[1]), float('inf')])
+                return Interval([Interval.my_true_div(self.x[0], ointerval.x[1]), float('inf')])
         elif ointerval.x[1] == 0:
             if self.x[1] < 0:
-                return Interval([self.__my_true_div(self.x[1], ointerval.x[0]), float('inf')])
+                return Interval([Interval.my_true_div(self.x[1], ointerval.x[0]), float('inf')])
             elif self.x[0] > 0:
-                return Interval([float('-inf'), self.__my_true_div(self.x[0], ointerval.x[0])])
+                return Interval([float('-inf'), Interval.my_true_div(self.x[0], ointerval.x[0])])
         else: #ointerval.x[0] < 0 < ointerval.x[1]:
             if self.x[1] < 0:
-                ra = self.__my_true_div(self.x[1], ointerval.x[1])
-                rb = self.__my_true_div(self.x[1], ointerval.x[0])
+                ra = Interval.my_true_div(self.x[1], ointerval.x[1])
+                rb = Interval.my_true_div(self.x[1], ointerval.x[0])
             elif self.x[0] > 0:
-                ra = self.__my_true_div(self.x[0], ointerval.x[0])
-                rb = self.__my_true_div(self.x[0], ointerval.x[1])
+                ra = Interval.my_true_div(self.x[0], ointerval.x[0])
+                rb = Interval.my_true_div(self.x[0], ointerval.x[1])
             return [Interval([float('-inf'), ra]), Interval([rb, float('inf')])]
 
 
     def __floordiv__(self, other):
+        """
+        Binary operator of floor division for Interval (self // other)
+        """
         ointerval = value_to_interval(other)
         if ((not isinstance(self.x[0], int)) and (not isinstance(self.x[0], sympy.Integer))) or ((not isinstance(self.x[1], int)) and
          (not isinstance(self.x[1], sympy.Integer))):
@@ -261,31 +308,40 @@ class Interval:
             return Interval([float('-inf'), float('inf')])
         elif ointerval.x[0] == 0:
             if self.x[1] < 0:
-                return Interval([float('-inf'), self.__my_floor_div(self.x[1], ointerval.x[1])])
+                return Interval([float('-inf'), Interval.__my_floor_div(self.x[1], ointerval.x[1])])
             else:
-                return Interval([self.__my_floor_div(self.x[0], ointerval.x[1]), float('inf')])
+                return Interval([Interval.__my_floor_div(self.x[0], ointerval.x[1]), float('inf')])
         elif ointerval.x[1] == 0:
             if self.x[1] < 0:
-                return Interval([self.__my_floor_div(self.x[1], ointerval.x[0]), float('inf')])
+                return Interval([Interval.__my_floor_div(self.x[1], ointerval.x[0]), float('inf')])
             elif self.x[0] > 0:
-                return Interval([float('-inf'), self.__my_floor_div(self.x[0], ointerval.x[0])])
+                return Interval([float('-inf'), Interval.__my_floor_div(self.x[0], ointerval.x[0])])
         else: #ointerval.x[0] < 0 < ointerval.x[1]:
             if self.x[1] < 0:
-                ra = self.__my_floor_div(self.x[1], ointerval.x[1])
-                rb = self.__my_floor_div(self.x[1], ointerval.x[0])
+                ra = Interval.__my_floor_div(self.x[1], ointerval.x[1])
+                rb = Interval.__my_floor_div(self.x[1], ointerval.x[0])
             elif self.x[0] > 0:
-                ra = self.__my_floor_div(self.x[0], ointerval.x[0])
-                rb = self.__my_floor_div(self.x[0], ointerval.x[1])
+                ra = Interval.__my_floor_div(self.x[0], ointerval.x[0])
+                rb = Interval.__my_floor_div(self.x[0], ointerval.x[1])
             return [Interval([float('-inf'), ra]), Interval([rb, float('inf')])]
 
     def __rmul__(self, other):
+        """
+        Binary reverse operator of multiplication for Interval (other * self)
+        """
         return self.__mul__(other)
 
     def __rtruediv__(self, other):
+        """
+        Binary reverse operator of true division for Interval (other / self)
+        """
         ointerval = value_to_interval(other)
         return ointerval.__truediv__(self)
 
     def __rfloordiv__(self, other):
+        """
+        Binary reverse operator of floor division for Interval (other // self)
+        """
         ointerval = value_to_interval(other)
         return ointerval.__floordiv__(self)
 
@@ -303,13 +359,13 @@ class IntervalMP(Interval):
     x = [None, None]
     def __init__(self, x):
         """
-        Constructor for Interval
+        Constructor for IntervalMP
 
         Parameters
         ----------
         x - list with size 2 [a, b]. Where a < b. a - lower bound, b - upper bound. a, b: Decimal or Interval
         """
-        if isinstance(x, Interval): #Добавить в ТЗ!!!
+        if isinstance(x, Interval): 
             self.x[0] = dec.Decimal(x.x[0])
             self.x[1] = dec.Decimal(x.x[1])
             return
@@ -364,9 +420,9 @@ class IntervalMP(Interval):
     def scale(self, factor, rounding_mode = dec.getcontext().rounding):
         """
         Changes width of the interval in given number of times with respect to the middle.
-        If rounding_mode = dec.ROUND_ROUND_HALF_EVEN, calculetes the closest approximation of the new bounds.
-        If rounding_mode = dec.ROUND_CEILING, calculetes the approximation of the new bounds, when width is it's maximum.
-        If rounding_mode = dec.ROUND_FLOOR, calculetes the approximation of the new bounds, when width is it's minimum.
+        If rounding_mode == dec.ROUND_ROUND_HALF_EVEN, calculetes the closest approximation of the new bounds.
+        If rounding_mode == dec.ROUND_CEILING, calculetes the approximation of the new bounds, when width is it's maximum.
+        If rounding_mode == dec.ROUND_FLOOR, calculetes the approximation of the new bounds, when width is it's minimum.
 
 
         Parameters
@@ -401,12 +457,22 @@ class IntervalMP(Interval):
         return IntervalMP([max(self.x[0], ointerval.x[0]), min(self.x[1], ointerval.x[1])])
 
     def __neg__(self):
+        """
+        Unary operator of minus for IntervalMP (-self)
+        """
         ninterval = IntervalMP(self.x)
         ninterval.x[0] = - self.x[1]
         ninterval.x[1] = - self.x[0]
         return ninterval
 
     def __add__(self, other):
+        """
+        Binary operator of plus for IntervalMP (self + other)
+
+        If rounding_mode == dec.ROUND_ROUND_HALF_EVEN, calculetes the closest approximation of the new bounds.
+        If rounding_mode == dec.ROUND_CEILING, calculetes the approximation of the new bounds, when width is it's maximum.
+        If rounding_mode == dec.ROUND_FLOOR, calculetes the approximation of the new bounds, when width is it's minimum.
+        """
         prev = dec.getcontext().rounding
         ointerval = value_to_interval_mp(other)
         ninterval = IntervalMP(self.x)
@@ -420,21 +486,53 @@ class IntervalMP(Interval):
         return ninterval
 
     def __radd__(self, other):
+        """
+        Binary reverse operator of plus for IntervalMP (other + self)
+
+        If rounding_mode == dec.ROUND_ROUND_HALF_EVEN, calculetes the closest approximation of the new bounds.
+        If rounding_mode == dec.ROUND_CEILING, calculetes the approximation of the new bounds, when width is it's maximum.
+        If rounding_mode == dec.ROUND_FLOOR, calculetes the approximation of the new bounds, when width is it's minimum.
+        """
         return self.__add__(other)
 
     def __sub__(self, other):
+        """
+        Binary operator of minus for IntervalMP (self - other)
+
+        If rounding_mode == dec.ROUND_ROUND_HALF_EVEN, calculetes the closest approximation of the new bounds.
+        If rounding_mode == dec.ROUND_CEILING, calculetes the approximation of the new bounds, when width is it's maximum.
+        If rounding_mode == dec.ROUND_FLOOR, calculetes the approximation of the new bounds, when width is it's minimum.
+        """
         ointerval = value_to_interval_mp(other)
         return self.__add__(-ointerval)
 
     def __rsub__(self, other):
+        """
+        Binary reverse operator of minus for IntervalMP (other - self)
+
+        If rounding_mode == dec.ROUND_ROUND_HALF_EVEN, calculetes the closest approximation of the new bounds.
+        If rounding_mode == dec.ROUND_CEILING, calculetes the approximation of the new bounds, when width is it's maximum.
+        If rounding_mode == dec.ROUND_FLOOR, calculetes the approximation of the new bounds, when width is it's minimum.
+        """
         ointerval = value_to_interval_mp(other)
         return (-self).__add__(ointerval)
 
 
     def __pow__(self, factor):
+        """
+        Binary operator of power for IntervalMP (self ** other)
+
+        If rounding_mode == dec.ROUND_ROUND_HALF_EVEN, calculetes the closest approximation of the new bounds.
+        If rounding_mode == dec.ROUND_CEILING, calculetes the approximation of the new bounds, when width is it's maximum.
+        If rounding_mode == dec.ROUND_FLOOR, calculetes the approximation of the new bounds, when width is it's minimum.
+
+        Parameters
+        ----------
+        other - int, float or Decimal
+        """
         if ((not isinstance(factor, int)) and (not isinstance(factor, sympy.Integer))) and ((not isinstance(factor, float)) and
          (not isinstance(factor, sympy.Float))) and (not isinstance(factor, dec.Decimal)):
-            raise TypeError("Factor for exponentiation should be int, float or decimal")
+            raise TypeError("Factor for exponentiation should be int, float or Decimal")
         is_nec_fact = False
         if factor < 0:
           factor *= -1
@@ -488,6 +586,17 @@ class IntervalMP(Interval):
         return ninterval
 
     def __rpow__(self, value):
+        """
+        Binary reverse operator of power for IntervalMP (other ** self)
+
+        If rounding_mode == dec.ROUND_ROUND_HALF_EVEN, calculetes the closest approximation of the new bounds.
+        If rounding_mode == dec.ROUND_CEILING, calculetes the approximation of the new bounds, when width is it's maximum.
+        If rounding_mode == dec.ROUND_FLOOR, calculetes the approximation of the new bounds, when width is it's minimum.
+
+        Parameters
+        ----------
+        other - int, float or Decimal
+        """
         if ((not isinstance(value, int)) and (not isinstance(value, sympy.Integer))) and ((not isinstance(value, float)) and
          (not isinstance(value, sympy.Float))) and (not isinstance(value, dec.Decimal)):
             raise TypeError("Value for exponentiation should be int, float or decimal")
@@ -500,26 +609,33 @@ class IntervalMP(Interval):
                 return IntervalMP([dec.Decimal('1'), dec.Decimal('1')])
             elif self.x[0] == dec.Decimal('0') and self.x[1] > dec.Decimal('0'):
                 return [IntervalMP([dec.Decimal('1'), dec.Decimal('1')]), IntervalMP([dec.Decimal('0'), dec.Decimal('0')])]
-            else:
-                prev = dec.getcontext().rounding
-                if prev == dec.ROUND_HALF_EVEN:
-                    u = value**self.x[0]
-                    v = value**self.x[1]
-                    return IntervalMP([min(u, v), max(u, v)])
+        else:
+            prev = dec.getcontext().rounding
+            if prev == dec.ROUND_HALF_EVEN:
+                u = value**self.x[0]
+                v = value**self.x[1]
+                return IntervalMP([min(u, v), max(u, v)])
 
-                set_rounding_mode_ceil()
-                u_ceil = value**self.x[0]
-                v_ceil = value**self.x[1]
-                set_rounding_mode_floor()
-                u_floor = value**self.x[0]
-                v_floor = value**self.x[1]
-                set_rounding_mode(prev)
-                if prev == dec.ROUND_CEILING:
-                    return IntervalMP([min(u_floor, v_floor), max(u_ceil, v_ceil)])
-                else:
-                    return IntervalMP([min(u_ceil, v_ceil), max(u_floor, v_floor)])
+            set_rounding_mode_ceil()
+            u_ceil = value**self.x[0]
+            v_ceil = value**self.x[1]
+            set_rounding_mode_floor()
+            u_floor = value**self.x[0]
+            v_floor = value**self.x[1]
+            set_rounding_mode(prev)
+            if prev == dec.ROUND_CEILING:
+                return IntervalMP([min(u_floor, v_floor), max(u_ceil, v_ceil)])
+            else:
+                return IntervalMP([min(u_ceil, v_ceil), max(u_floor, v_floor)])
 
     def __mul__(self, other):
+        """
+        Binary operator of multiplication for IntervalMP (self * other)
+
+        If rounding_mode == dec.ROUND_ROUND_HALF_EVEN, calculetes the closest approximation of the new bounds.
+        If rounding_mode == dec.ROUND_CEILING, calculetes the approximation of the new bounds, when width is it's maximum.
+        If rounding_mode == dec.ROUND_FLOOR, calculetes the approximation of the new bounds, when width is it's minimum.
+        """
         ointerval = value_to_interval_mp(other)
         prev = dec.getcontext().rounding
         if prev == dec.ROUND_HALF_EVEN:
@@ -537,9 +653,23 @@ class IntervalMP(Interval):
         return IntervalMP(b)
 
     def __rmul__(self, other):
+        """
+        Binary reverse operator of multiplication for IntervalMP (other * self)
+
+        If rounding_mode == dec.ROUND_ROUND_HALF_EVEN, calculetes the closest approximation of the new bounds.
+        If rounding_mode == dec.ROUND_CEILING, calculetes the approximation of the new bounds, when width is it's maximum.
+        If rounding_mode == dec.ROUND_FLOOR, calculetes the approximation of the new bounds, when width is it's minimum.
+        """
         return self.__mul__(other)
 
     def __truediv__(self, other):
+        """
+        Binary operator of true division for IntervalMP (self / other)
+
+        If rounding_mode == dec.ROUND_ROUND_HALF_EVEN, calculetes the closest approximation of the new bounds.
+        If rounding_mode == dec.ROUND_CEILING, calculetes the approximation of the new bounds, when width is it's maximum.
+        If rounding_mode == dec.ROUND_FLOOR, calculetes the approximation of the new bounds, when width is it's minimum.
+        """
         ointerval = value_to_interval_mp(other)
         prev = dec.getcontext().rounding
         if ointerval.x[0] == ointerval.x[1] == dec.Decimal('0'):
@@ -560,14 +690,14 @@ class IntervalMP(Interval):
             return Interval([dec.Decimal('-Infinity'), dec.Decimal('Infinity')])
         elif ointerval.x[0] == dec.Decimal('0'):
             if self.x[1] < dec.Decimal('0'):
-                u = self.__my_true_div(self.x[1], ointerval.x[1])
+                u = Interval.my_true_div(self.x[1], ointerval.x[1])
                 return Interval([dec.Decimal('-Infinity'), u])
             else:
                 if prev == dec.ROUND_CEILING:
                     set_rounding_mode_floor()
                 elif prev == dec.ROUND_FLOOR:
                     set_rounding_mode_ceil()
-                v = self.__my_true_div(self.x[0], ointerval.x[1])
+                v = Interval.my_true_div(self.x[0], ointerval.x[1])
                 set_rounding_mode(prev)
                 return Interval([v, dec.Decimal('Infinity')])
         elif ointerval.x[1] == dec.Decimal('0'):
@@ -576,31 +706,38 @@ class IntervalMP(Interval):
                     set_rounding_mode_floor()
                 elif prev == dec.ROUND_FLOOR:
                     set_rounding_mode_ceil()
-                v = self.__my_true_div(self.x[1], ointerval.x[0])
+                v = Interval.my_true_div(self.x[1], ointerval.x[0])
                 set_rounding_mode(prev)
                 return Interval([v, dec.Decimal('Infinity')])
             elif self.x[0] > dec.Decimal('0'):
-                u = self.__my_true_div(self.x[0], ointerval.x[0])
+                u = Interval.my_true_div(self.x[0], ointerval.x[0])
                 return Interval([dec.Decimal('-Infinity'), u])
         else:
             if self.x[1] < dec.Decimal('0'):
-                ra = self.__my_true_div(self.x[1], ointerval.x[1])
+                ra = Interval.my_true_div(self.x[1], ointerval.x[1])
                 if prev == dec.ROUND_CEILING:
                     set_rounding_mode_floor()
                 elif prev == dec.ROUND_FLOOR:
                     set_rounding_mode_ceil()
-                rb = self.__my_true_div(self.x[1], ointerval.x[0])
+                rb = Interval.my_true_div(self.x[1], ointerval.x[0])
             elif self.x[0] > dec.Decimal('0'):
-                ra = self.__my_true_div(self.x[0], ointerval.x[0])
+                ra = Interval.my_true_div(self.x[0], ointerval.x[0])
                 if prev == dec.ROUND_CEILING:
                     set_rounding_mode_floor()
                 elif prev == dec.ROUND_FLOOR:
                     set_rounding_mode_ceil()
-                rb = self.__my_true_div(self.x[0], ointerval.x[1])
+                rb = Interval.my_true_div(self.x[0], ointerval.x[1])
             set_rounding_mode(prev)
             return [IntervalMP([dec.Decimal('-Infinity'), ra]), Interval([rb, dec.Decimal('Infinity')])]
 
     def __rtruediv__(self, other):
+        """
+        Binary reverse operator of true division for IntervalMP (other / self)
+
+        If rounding_mode == dec.ROUND_ROUND_HALF_EVEN, calculetes the closest approximation of the new bounds.
+        If rounding_mode == dec.ROUND_CEILING, calculetes the approximation of the new bounds, when width is it's maximum.
+        If rounding_mode == dec.ROUND_FLOOR, calculetes the approximation of the new bounds, when width is it's minimum.
+        """
         ointerval = value_to_interval(other)
         return ointerval.__truediv__(self)
 
